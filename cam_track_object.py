@@ -1,4 +1,5 @@
 from collections import deque
+import paho.mqtt.client as mqtt
 import cv2
 import urllib 
 import numpy as np
@@ -10,7 +11,22 @@ bytes=''
 colorLower = (0, 0, 0)
 colorUpper = (105, 105, 105)
 pts = deque(maxlen=1024)
+
+client = mqtt.Client(client_id="camPythonaa", clean_session=True, userdata=None)
+print("CONNECTING....")
+client.connect("iot.eclipse.org", 1883,80)
+print("CONNECTED")
+
+# Blocking call that processes network traffic, dispatches callbacks and
+# handles reconnecting.
+# Other loop*() functions are available that give a threaded interface and a
+# manual interface.
+client.loop_start()
+
+
 while True:
+    #client.loop()    
+
     bytes+=stream.read(1024)
     a = bytes.find('\xff\xd8')
     b = bytes.find('\xff\xd9')
@@ -43,8 +59,11 @@ while True:
             c = max(cnts, key=cv2.contourArea)
             ((x, y), radius) = cv2.minEnclosingCircle(c)
             M = cv2.moments(c)
-            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+            x = int(M["m10"] / M["m00"])
+            y = int(M["m01"] / M["m00"])
+            center = (x, y)
             print(center)
+            client.publish("cam/center", str(x)+":"+str(y))
             # only proceed if the radius meets a minimum size
             if radius > 10:
                 # draw the circle and centroid on the frame,
